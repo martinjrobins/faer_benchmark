@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 faer = "0.18.2"
 nalgebra-sparse = { version="0.10.0", features=["io"] }
-suitesparse-sys = { git = "https://github.com/martinjrobins/suitesparse-sys" }
+suitesparse_sys = "0.1.1"
 
 [dev-dependencies]
 criterion = "0.5.1"

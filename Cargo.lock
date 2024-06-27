@@ -428,7 +428,7 @@ dependencies = [
  "criterion",
  "faer",
  "nalgebra-sparse",
- "suitesparse-sys",
+ "suitesparse_sys",
 ]
 
 [[package]]
@@ -1183,9 +1183,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "suitesparse-sys"
-version = "0.1.0"
-source = "git+https://github.com/martinjrobins/suitesparse-sys#69a74ad325279d0470f8001ef15aa829c1c79abc"
+name = "suitesparse_sys"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aaeb65dded144fe1114b81cec1de59fcec30515668c2c63c65fc797eccca4586"
 dependencies = [
  "bindgen",
  "cmake",
