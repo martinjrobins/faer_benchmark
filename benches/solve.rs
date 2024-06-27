@@ -3,24 +3,13 @@ use faer::sparse::linalg::solvers::SymbolicLu;
 use faer::sparse::{linalg::solvers::Lu, SparseColMat, SymbolicSparseColMat};
 use faer::Col;
 use faer::prelude::SpSolver;
-use nalgebra_sparse::{io::load_coo_from_matrix_market_file, CscMatrix};
 use suitesparse_sys::{
     klu_l_analyze as klu_analyze, klu_l_common as klu_common, klu_l_defaults as klu_defaults, klu_l_factor as klu_factor, klu_l_free_numeric as klu_free_numeric, klu_l_free_symbolic as klu_free_symbolic,
     klu_l_solve as klu_solve,
 };
+use faer_benchmark::load_matrix;
 
-fn load_matrix(filename: &str) -> (usize, usize, Vec<usize>, Vec<usize>, Vec<usize>, Vec<f64>) {
-    let coo = load_coo_from_matrix_market_file(filename).unwrap();
-    let csc = CscMatrix::from(&coo);
-    let nrows = csc.nrows();
-    let ncols = csc.ncols();
-    let nnz_per_col = csc.col_iter().map(|col| col.nnz()).collect::<Vec<_>>();
-    let (col_offsets, row_indices, values) = csc.csc_data();
-    let col_offsets = col_offsets.to_vec();
-    let row_indices = row_indices.to_vec();
-    let values = values.to_vec();
-    (nrows, ncols, col_offsets, nnz_per_col, row_indices, values)
-}
+
 
 fn criterion_benchmark(c: &mut Criterion) {
     let filenames = ["heat2d_5.mtx", "heat2d_10.mtx", "heat2d_20.mtx", "heat2d_30.mtx"];
