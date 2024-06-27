@@ -5,8 +5,8 @@ use faer::Col;
 use faer::prelude::SpSolver;
 use nalgebra_sparse::{io::load_coo_from_matrix_market_file, CscMatrix};
 use suitesparse_sys::{
-    klu_analyze, klu_common, klu_defaults, klu_factor, klu_free_numeric, klu_free_symbolic,
-    klu_solve,
+    klu_l_analyze as klu_analyze, klu_l_common as klu_common, klu_l_defaults as klu_defaults, klu_l_factor as klu_factor, klu_l_free_numeric as klu_free_numeric, klu_l_free_symbolic as klu_free_symbolic,
+    klu_l_solve as klu_solve,
 };
 
 fn load_matrix(filename: &str) -> (usize, usize, Vec<usize>, Vec<usize>, Vec<usize>, Vec<f64>) {
@@ -25,78 +25,6 @@ fn load_matrix(filename: &str) -> (usize, usize, Vec<usize>, Vec<usize>, Vec<usi
 fn criterion_benchmark(c: &mut Criterion) {
     let filenames = ["heat2d_5.mtx", "heat2d_10.mtx", "heat2d_20.mtx", "heat2d_30.mtx"];
     for filename in filenames {
-        c.bench_function(format!("{}_symbolic_faer", filename).as_str(), |b| {
-            let (nrows, ncols, col_offsets, nnz_per_col, row_indices, values) =
-                load_matrix(filename);
-            let symbolic = SymbolicSparseColMat::new_checked(
-                nrows,
-                ncols,
-                col_offsets,
-                Some(nnz_per_col),
-                row_indices,
-            );
-            let matrix = SparseColMat::<usize, f64>::new(symbolic, values);
-            b.iter(|| {
-                SymbolicLu::try_new(matrix.symbolic()).expect("Failed to create symbolic LU");
-            })
-        });
-        c.bench_function(format!("{}_symbolic_klu", filename).as_str(), |b| {
-            let (nrows, _ncols, mut col_ptrs, _nnz_per_col, mut row_ind, _values) =
-                load_matrix(filename);
-
-            let mut common = klu_common::default();
-            unsafe { klu_defaults(&mut common) };
-            let n = nrows as i32;
-            
-            b.iter(|| {
-                let mut symbolic = unsafe { klu_analyze(n, col_ptrs.as_mut_ptr() as *mut i32, row_ind.as_mut_ptr() as *mut i32, &mut common) };
-                unsafe { klu_free_symbolic(&mut symbolic, &mut common) };
-            })
-        });
-    }
-    for filename in filenames {
-        c.bench_function(format!("{}_numeric_faer", filename).as_str(), |b| {
-            let (nrows, ncols, col_offsets, nnz_per_col, row_indices, values) =
-                load_matrix(filename);
-            let symbolic = SymbolicSparseColMat::new_checked(
-                nrows,
-                ncols,
-                col_offsets,
-                Some(nnz_per_col),
-                row_indices,
-            );
-            let matrix = SparseColMat::<usize, f64>::new(symbolic, values);
-            let symbolic =
-                SymbolicLu::try_new(matrix.symbolic()).expect("Failed to create symbolic LU");
-            b.iter(|| {
-                Lu::try_new_with_symbolic(symbolic.clone(), matrix.as_ref())
-                    .expect("Failed to factorise matrix");
-            })
-        });
-        c.bench_function(format!("{}_numeric_klu", filename).as_str(), |b| {
-            let (nrows, _ncols, mut col_ptrs, _nnz_per_col, mut row_ind, mut values) =
-                load_matrix(filename);
-
-            let mut common = klu_common::default();
-            unsafe { klu_defaults(&mut common) };
-            let n = nrows as i32;
-            let mut symbolic = unsafe { klu_analyze(n, col_ptrs.as_mut_ptr() as *mut i32, row_ind.as_mut_ptr() as *mut i32, &mut common) };
-            b.iter(|| {
-                let mut numeric = unsafe {
-                    klu_factor(
-                        col_ptrs.as_mut_ptr() as *mut i32,
-                        row_ind.as_mut_ptr() as *mut i32,
-                        values.as_mut_ptr(),
-                        symbolic,
-                        &mut common,
-                    )
-                };
-                unsafe { klu_free_numeric(&mut numeric, &mut common) };
-            });
-            unsafe { klu_free_symbolic(&mut symbolic, &mut common) };
-        });
-    }
-    for filename in filenames {
         c.bench_function(format!("{}_solve_faer", filename).as_str(), |b| {
             let (nrows, ncols, col_offsets, nnz_per_col, row_indices, values) =
                 load_matrix(filename);
@@ -108,13 +36,13 @@ fn criterion_benchmark(c: &mut Criterion) {
                 row_indices,
             );
             let matrix = SparseColMat::<usize, f64>::new(symbolic, values);
-            let symbolic =
-                SymbolicLu::try_new(matrix.symbolic()).expect("Failed to create symbolic LU");
-            let lu = Lu::try_new_with_symbolic(symbolic.clone(), matrix.as_ref())
-                    .expect("Failed to factorise matrix");
-            let x = Col::from_fn(nrows, |i| i as f64);
+            
             b.iter(|| {
-                let x = x.clone();
+                let x = Col::from_fn(nrows, |i| i as f64);
+                let symbolic =
+                    SymbolicLu::try_new(matrix.symbolic()).expect("Failed to create symbolic LU");
+                let lu = Lu::try_new_with_symbolic(symbolic, matrix.as_ref())
+                    .expect("Failed to factorise matrix");
                 lu.solve_in_place(x);
             })
         });
@@ -122,27 +50,27 @@ fn criterion_benchmark(c: &mut Criterion) {
             let (nrows, _ncols, mut col_ptrs, _nnz_per_col, mut row_ind, mut values) =
                 load_matrix(filename);
 
-            let mut common = klu_common::default();
-            unsafe { klu_defaults(&mut common) };
-            let n = nrows as i32;
-            let mut symbolic = unsafe { klu_analyze(n, col_ptrs.as_mut_ptr() as *mut i32, row_ind.as_mut_ptr() as *mut i32, &mut common) };
-            let mut numeric = unsafe {
-                klu_factor(
-                    col_ptrs.as_mut_ptr() as *mut i32,
-                    row_ind.as_mut_ptr() as *mut i32,
-                    values.as_mut_ptr(),
-                    symbolic,
-                    &mut common,
-                )
-            };
-            let n = nrows as i32;
-            let mut x = vec![1.0; nrows];
             b.iter(|| {
+                let mut common = klu_common::default();
+                unsafe { klu_defaults(&mut common) };
+                let n = nrows as i64;
+                let mut symbolic = unsafe { klu_analyze(n, col_ptrs.as_mut_ptr() as *mut i64, row_ind.as_mut_ptr() as *mut i64, &mut common) };
+                let mut numeric = unsafe {
+                    klu_factor(
+                        col_ptrs.as_mut_ptr() as *mut i64,
+                        row_ind.as_mut_ptr() as *mut i64,
+                        values.as_mut_ptr(),
+                        symbolic,
+                        &mut common,
+                    )
+                };
+                let n = nrows as i64;
+                let mut x = vec![1.0; nrows];
                 unsafe { klu_solve(symbolic, numeric, n, 1, x.as_mut_ptr(), &mut common) };
+                unsafe { klu_free_symbolic(&mut symbolic, &mut common) };
+                unsafe { klu_free_numeric(&mut numeric, &mut common) };
                 
             });
-            unsafe { klu_free_symbolic(&mut symbolic, &mut common) };
-            unsafe { klu_free_numeric(&mut numeric, &mut common) };
         });
     }
 }
