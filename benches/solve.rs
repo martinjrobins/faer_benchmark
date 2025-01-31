@@ -12,7 +12,7 @@ use faer_benchmark::load_matrix;
 
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let filenames = ["heat2d_5.mtx", "heat2d_10.mtx", "heat2d_20.mtx", "heat2d_30.mtx"];
+    let filenames = ["heat2d_5.mtx", "heat2d_10.mtx", "heat2d_20.mtx", "heat2d_30.mtx", "robertson_ode_10.mtx", "robertson_ode_100.mtx", "robertson_ode_1000.mtx"];
     for filename in filenames {
         c.bench_function(format!("{}_solve_faer", filename).as_str(), |b| {
             let (nrows, ncols, col_offsets, nnz_per_col, row_indices, values) =

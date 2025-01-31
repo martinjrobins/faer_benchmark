@@ -32,7 +32,7 @@ mod tests {
     #[test]
     fn it_works() {
 
-        let (nrows, ncols, mut col_offsets, nnz_per_col, mut row_indices, mut values) = load_matrix("heat2d_5.mtx");
+        let (nrows, ncols, mut col_offsets, nnz_per_col, mut row_indices, mut values) = load_matrix("robertson_ode_10.mtx");
         let symbolic = SymbolicSparseColMat::new_checked(
             nrows,
             ncols,
