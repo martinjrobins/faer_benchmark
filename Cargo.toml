@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-faer = "0.19.4"
+faer = "0.21.3"
 nalgebra-sparse = { version="0.10.0", features=["io"] }
 suitesparse_sys = "0.1.3"
 

@@ -23,7 +23,8 @@ mod tests {
     use faer::sparse::linalg::solvers::SymbolicLu;
     use faer::sparse::{linalg::solvers::Lu, SparseColMat, SymbolicSparseColMat};
     use faer::Col;
-    use faer::prelude::SpSolver;
+    use faer::reborrow::Reborrow;
+    use faer::linalg::solvers::Solve;
     use suitesparse_sys::{
         klu_l_analyze as klu_analyze, klu_l_common as klu_common, klu_l_defaults as klu_defaults, klu_l_factor as klu_factor, klu_l_free_numeric as klu_free_numeric, klu_l_free_symbolic as klu_free_symbolic,
         klu_l_solve as klu_solve,
@@ -44,10 +45,10 @@ mod tests {
         let mut x = Col::from_fn(nrows, |_i| 1.0);
         let symbolic =
             SymbolicLu::try_new(matrix.symbolic()).expect("Failed to create symbolic LU");
-        let lu = Lu::try_new_with_symbolic(symbolic, matrix.as_ref())
+        let lu = Lu::try_new_with_symbolic(symbolic, matrix.rb())
             .expect("Failed to factorise matrix");
         lu.solve_in_place(x.as_mut());
-        let x_faer: Vec<f64> = x.as_slice().to_vec();
+        let x_faer: Vec<f64> = x.iter().copied().collect();
         
         let mut common = klu_common::default();
         unsafe { klu_defaults(&mut common) };

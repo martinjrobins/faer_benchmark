@@ -2,12 +2,13 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use faer::sparse::linalg::solvers::SymbolicLu;
 use faer::sparse::{linalg::solvers::Lu, SparseColMat, SymbolicSparseColMat};
 use faer::Col;
-use faer::prelude::SpSolver;
 use suitesparse_sys::{
     klu_l_analyze as klu_analyze, klu_l_common as klu_common, klu_l_defaults as klu_defaults, klu_l_factor as klu_factor, klu_l_free_numeric as klu_free_numeric, klu_l_free_symbolic as klu_free_symbolic,
     klu_l_solve as klu_solve,
 };
 use faer_benchmark::load_matrix;
+use faer::linalg::solvers::Solve;
+use faer::reborrow::Reborrow;
 
 
 
@@ -30,7 +31,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 let x = Col::from_fn(nrows, |i| i as f64);
                 let symbolic =
                     SymbolicLu::try_new(matrix.symbolic()).expect("Failed to create symbolic LU");
-                let lu = Lu::try_new_with_symbolic(symbolic, matrix.as_ref())
+                let lu = Lu::try_new_with_symbolic(symbolic, matrix.rb())
                     .expect("Failed to factorise matrix");
                 lu.solve_in_place(x);
             })
